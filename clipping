@@ -1,0 +1,180 @@
+#include<windows.h>
+#include<iostream>
+#include <GL/glut.h>
+#include<vector>
+#define SCREEN_HEIGHT 480
+#include<algorithm>
+using namespace std;
+void init()
+{
+    glClearColor(1,1,1,1);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0,640,0,480);//0-640 width 0-480 height
+}
+struct point
+{
+    float x;
+    float y;
+};
+struct line
+{
+    struct point pt1;
+    struct point pt2;
+};
+struct point pts[100];
+struct line lines[100];
+int l=0;
+bool windowdrawn=false;
+float xmax,ymax,xmin,ymin;
+
+int i=0;
+void window()
+{
+    glColor3d(0,0,0);
+    glBegin(GL_LINE_LOOP);
+        glVertex2d(pts[0].x,pts[0].y);
+        glVertex2d(pts[1].x,pts[0].y);
+        glVertex2d(pts[1].x,pts[1].y);
+        glVertex2d(pts[0].x,pts[1].y);
+    glEnd();
+    //glFlush();
+}
+void drawline()
+{
+    glColor3d(0,0,0);
+    glBegin(GL_LINES);
+        glVertex2d(pts[0].x,pts[0].y);
+        glVertex2d(pts[1].x,pts[1].y);
+
+    glEnd();
+    lines[l].pt1=pts[0];
+    lines[l].pt2=pts[1];
+    l+=1;
+    cout<<lines;
+}
+void clip(struct line ln)
+{
+    float x1=ln.pt1.x;
+    float x2=ln.pt2.x;
+    float y1=ln.pt1.y;
+    float y2=ln.pt2.y;
+    float delX=x2-x1,delY=y2-y1;
+    float p[4],q[4];
+    p[0]=-delX;
+    p[1]=delX;
+    p[2]=-delY;
+    p[3]=delY;
+    q[0]=x1-xmin;
+    q[1]=xmax-x1;
+    q[2]=y1-ymin;
+    q[3]=ymax-y1;
+    float u1=0,u2=1;
+    for(int j=0;j<4;j++)
+    {
+        cout<<"p = "<<p[j]<<" q = "<<q[j]<<endl;
+        if(p[j]==0 && q[j]<0)
+        {
+            cout<<"line outside";
+            return;
+        }
+        else
+        {
+            if(p[j]<0)
+                u1=max(u1,q[j]/p[j]);
+            else if(p[j]> 0)
+                u2=min(u2,q[j]/p[j]);
+
+        }
+    }
+    if(u1<=u2)
+    {
+
+
+        float newx1,newx2,newy1,newy2;
+        struct point newpt1,newpt2;
+        newpt1.x=x1+u1*delX;
+        newpt1.y=y1+u1*delY;
+        newpt2.x=x1+u2*delX;
+        newpt2.y=y1+u2*delY;
+   
+        glColor3d(1,0,0);
+        glBegin(GL_LINES);
+            glVertex2f(newpt1.x,newpt1.y);
+            glVertex2f(newpt2.x,newpt2.y);
+
+        glEnd();
+        glFlush();
+    }
+
+
+}
+void mouse(int button,int state,int x,int y)
+{
+    if(button==GLUT_LEFT && state==GLUT_DOWN)
+    {
+        y=480-y;
+        pts[i].x=x;
+        pts[i].y=y;
+        glBegin(GL_POINTS);
+            glVertex2d(x,y);
+        glEnd();
+        glFlush();
+        i+=1;
+        if(i==2)
+        {
+            if(windowdrawn==false)
+            {
+                window();
+                windowdrawn=true;
+                i=0;
+                xmin=min(pts[0].x,pts[1].x);
+                xmax=max(pts[0].x,pts[1].x);
+                ymin=min(pts[0].y,pts[1].y);
+                ymax=max(pts[0].y,pts[1].y);
+            }
+            else
+            {
+                            cout<<"hiii";
+
+                drawline();
+                    glColor3d(0,0,0);
+                i=0;
+
+            }
+            glFlush();
+
+        }
+    }
+    else if(button==GLUT_RIGHT_BUTTON && state == GLUT_DOWN)
+    {
+
+        for(int k=0;k<l;k++)
+        {
+            clip(lines[k]);
+
+        }
+
+    }
+}
+
+static void display(void)
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+    glFlush();
+}
+
+
+int main(int argc, char *argv[])
+{
+    glutInit(&argc, argv);
+    glutInitWindowSize(640,480);
+    glutInitWindowPosition(10,10);
+    glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
+    glutCreateWindow("GLUT Shapes");
+    glutDisplayFunc(display);
+    glutMouseFunc(mouse);
+    init();
+    glutMainLoop();
+    return EXIT_SUCCESS;
+}
